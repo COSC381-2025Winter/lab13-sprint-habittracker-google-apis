@@ -20,3 +20,29 @@ def get_sheet_data(creds):
     values = result.get('values', []) # list of lists containing the values read from the spreadsheet (rows of the spreadsheet)
 
     return values
+
+    '''add_habit adds a new habit to the Google Sheet.'''
+def add_habit(creds, habit):
+    service = build('sheets', 'v4', credentials=creds)  # Google Sheets API client
+    spreadsheet_id = '1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4'  # Target Google Spreadsheet
+    sheet_name = 'Habit Tracker'  # Name of the sheet to modify
+
+    # Prepare data to append
+    new_row = [habit]  # Habit to add 
+
+    # Append new habit to the sheet
+    range_name = f'{sheet_name}!A2'  # Start appending from row 2 because row 1 are headers
+    body = {
+        'values': [new_row]
+    }
+
+    # Append the new habit to the sheet
+    sheet = service.spreadsheets()
+    sheet.values().append(
+        spreadsheetId=spreadsheet_id,
+        range=range_name,
+        valueInputOption="RAW",  # Values are inserted as raw text
+        body=body
+    ).execute()
+
+    print(f"✅ Habit '{habit}' added successfully!")
