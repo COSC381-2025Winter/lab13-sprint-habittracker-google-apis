@@ -1,6 +1,19 @@
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
+'''create_sheet uses the user's Google credentials and a sheet title they entered to create a new Google Spreadsheet '''
+def create_sheet(creds, title: str):
+    """Create a new Google Sheet and return its spreadsheetId."""
+    service = build('sheets', 'v4', credentials=creds)
+    body = {
+        'properties': {'title': title}
+    }
+    sheet = service.spreadsheets().create(
+        body=body,
+        fields='spreadsheetId'
+    ).execute() # create a Google Sheet with the provided title
+    return sheet['spreadsheetId'] # return the spreadsheet ID
+
 '''get_sheet_data retrieves data from a Google Sheet using the Google Sheets API. '''
 def get_sheet_data(creds):
     service = build('sheets', 'v4', credentials = creds) # create a Google Sheets API client authenticated with the user's credentials
@@ -21,10 +34,9 @@ def get_sheet_data(creds):
 
     return values
 
-    '''add_habit adds a new habit to the Google Sheet.'''
-def add_habit(creds, habit):
+'''add_habit adds a new habit to the Google Sheet.'''
+def add_habit(creds, spreadsheet_id, habit):
     service = build('sheets', 'v4', credentials=creds)  # Google Sheets API client
-    spreadsheet_id = '1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4'  # Target Google Spreadsheet
     sheet_name = 'Habit Tracker'  # Name of the sheet to modify
 
     # Prepare data to append
@@ -45,4 +57,4 @@ def add_habit(creds, habit):
         body=body
     ).execute()
 
-    print(f"✅ Habit '{habit}' added successfully!")
+    print(f"\n✅ Habit '{habit}' added successfully!\n")

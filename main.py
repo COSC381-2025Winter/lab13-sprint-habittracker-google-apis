@@ -1,50 +1,84 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google_sheets import get_sheet_data
+from google_sheets import create_sheet, get_sheet_data, add_habit
 
-def main():
-    scopes = ['https://www.googleapis.com/auth/spreadsheets'] # define the permissions the application requests
-    creds = None # stores the user's OAuth credentials for authentication with Google APIs
-    flow = InstalledAppFlow.from_client_secrets_file('credentials.json', scopes) # create the OAuth flow to handle authentication/authorization using the app's credentials and requested permissions
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets'] # define required permissions from user's Google account
 
-    creds = flow.run_local_server(port=0)  # attempt using the local server first
-    print() # print a newline afterwards
+'''authenticate_user authenticates the user's Google account using OAuth flow, ensuring that the program has the necessary permissions to create a new Google Spreadsheet, make edits to it as necessary, and make changes to their Google Calendar. Upon successful authentication, credentials are returned. '''
+def authenticate_user():
+    flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES) # create the user authentication window with necessary permissions
+    creds = flow.run_local_server(port=0) # run user authentication window 
+    print()  # print newline after the browser‑redirect log
+    return creds
 
-    # Step 1: Read data from the sheet
-    data = get_sheet_data(creds)
-    print(data)
-
+''' Ask the user if they want to reuse an existing sheet or create a new one. Returns the chosen spreadsheet_id. '''
+def choose_or_create_sheet(creds):
+    choice = input("Use existing Habit Tracker sheet? (y/n): ").strip().lower()
     while True:
-        print("\nMenu:")
-        print("1. Add Habit")
-        print("2. Show Habit List")
-        print("3. Exit")
-        choice = input("Choose an option (1, 2, or 3): ")
+        if choice == 'y':
+            print("\nYou will need to input your Google Sheet's spreadsheet ID, which can be copied from this part of the website URL:\nhttps://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit?gid=0#gid=0\n")
+            spreadsheet_id = input("Enter the spreadsheet ID from your Google Sheet URL: ").strip()
+            print(f"Using existing sheet: https://docs.google.com/spreadsheets/d/{spreadsheet_id}\n")
+            return spreadsheet_id
+        elif choice == 'n':
+            title = input("Enter a title for your new Habit Tracker sheet: ").strip()
+            spreadsheet_id = create_sheet(creds, title)
+            print(f"Created new sheet: https://docs.google.com/spreadsheets/d/{spreadsheet_id}\n")
+            return spreadsheet_id
+        else:
+            choice = input("Please enter either y or n: ")
+
+'''create_new_sheet is a helper function that creates a Google Spreadsheet after prompting the user to enter a title for it'''
+def create_new_sheet(creds):
+    title = input("Enter a title for your new Habit Tracker sheet: ") # prompt the user to enter a new title for their habit tracker sheet
+
+    spreadsheet_id = create_sheet(creds, title) # create a spreadsheet using the create_sheet function in google_sheets.py
+    print(f"✅ Created Spreadsheet: https://docs.google.com/spreadsheets/d/{spreadsheet_id}\n")
+    return spreadsheet_id
+
+'''main handles the logic for displaying the main menu and processing user interactions'''
+def main():
+    creds = authenticate_user() # get the user's Google credentials
+
+    # check if the user already has a habit tracker sheet, handle program logic accordingly, and get a reference to the spreadsheet id
+    spreadsheet_id = choose_or_create_sheet(creds)
+
+    # main menu logic
+    while True:
+        print("Menu:")
+        print("  1. Add Habit")
+        print("  2. Mark Habit Complete")
+        print("  3. Edit Habit")
+        print("  4. Delete Habit")
+        print("  5. Show Habit List")
+        print("  6. Add Habits to Calendar")
+        print("  7. Exit")
+        choice = input("Choose an option (1–6): ")
 
         if choice == "1":
             habit = input("Enter a habit to track: ")
-            #add habbit function  # Adds the habit to Google Sheets
-            print("✅ Habit added successfully!")
-
+            add_habit(creds, spreadsheet_id, habit)
         elif choice == "2":
-            data = get_sheet_data(creds)  # Fetches the habit list from the sheet
+            data = get_sheet_data(creds, spreadsheet_id)
             if not data:
-                print(" No habits found.")
+                print("No habits found.")
             else:
-                print("\n Habit List:")
-                for entry in data:
-                    print(f"{entry['Date']} - {entry['Habit']}")  # Assuming data has 'Date' and 'Habit' columns
-
+                print("\nHabit List:")
+                for row in data:
+                    # assuming columns are Date, Habit, … 
+                    print("  " + " | ".join(row))
         elif choice == "3":
+            print("Currently Unimplemented\n")
+        elif choice == "4":
+            print("Currently Unimplemented\n")
+        elif choice == "5":
+            print("Currently Unimplemented\n")
+        elif choice == "6":
+            print("Currently Unimplemented\n")
+        elif choice == "7":
             print("Goodbye!")
-            break  # Exit the program
-
+            break
         else:
-            print("❌ Invalid choice. Please enter 1, 2, or 3.")
-
-if __name__ == "__main__":
-    main()
-
-
+            print("Invalid choice. Please enter a number 1-7.")
 
 if __name__ == "__main__":
     main()
