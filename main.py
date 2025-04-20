@@ -1,5 +1,7 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google_sheets import create_sheet, get_sheet_data, add_habit
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets'] # define required permissions from user's Google account
 
@@ -10,15 +12,34 @@ def authenticate_user():
     print()  # print newline after the browser‑redirect log
     return creds
 
+''' Check to see if the user entered a valid Google Sheets URL. '''
+def is_valid_spreadsheet(creds, spreadsheet_id):
+    try:
+        service = build('sheets', 'v4', credentials=creds)
+        service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        return True
+    except HttpError as error:
+        if error.resp.status in [403, 404]:
+            print("❌ Error: Unable to access the spreadsheet. Make sure the URL is valid and shared with your account.")
+        else:
+            print(f"❌ An unexpected error occurred: {error}")
+        return False
+
 ''' Ask the user if they want to reuse an existing sheet or create a new one. Returns the chosen spreadsheet_id. '''
 def choose_or_create_sheet(creds):
     choice = input("Use existing Habit Tracker sheet? (y/n): ").strip().lower()
     while True:
         if choice == 'y':
-            print("\nYou will need to input your Google Sheet's spreadsheet ID, which can be copied from this part of the website URL:\nhttps://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit?gid=0#gid=0\n")
-            spreadsheet_id = input("Enter the spreadsheet ID from your Google Sheet URL: ").strip()
-            print(f"Using existing sheet: https://docs.google.com/spreadsheets/d/{spreadsheet_id}\n")
-            return spreadsheet_id
+            spreadsheet_url = input("Copy and paste your Google Sheet URL here: ").strip()
+            try:
+                spreadsheet_id = spreadsheet_url.split("/d/")[1].split("/edit")[0] # try splitting the Google Sheet URL to get only the spreadsheet id
+                if is_valid_spreadsheet(creds, spreadsheet_id):
+                    print(f"Using existing sheet.\n")
+                    return spreadsheet_id
+                else:
+                    print("Please enter a valid and accessible spreadsheet URL.\n")
+            except IndexError:
+                print("That doesn't look like a valid Google Sheet URL. Try again.\n")
         elif choice == 'n':
             title = input("Enter a title for your new Habit Tracker sheet: ").strip()
             spreadsheet_id = create_sheet(creds, title)
