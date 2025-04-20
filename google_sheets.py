@@ -24,46 +24,76 @@ def create_sheet(creds, title: str):
 
     return sheet['spreadsheetId']
 
-
-'''get_sheet_data retrieves data from a Google Sheet using the Google Sheets API. '''
+'''get_sheet_data retrieves data from a Google Sheet using the Google Sheets API.'''
 def get_sheet_data(creds, spreadsheet_id):
-    service = build('sheets', 'v4', credentials = creds) # create a Google Sheets API client authenticated with the user's credentials
-    
-    # Get the sheet metadata to check the sheet name(s)
-    # sheet_metadata = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
-    # sheet_titles = [sheet['properties']['title'] for sheet in sheet_metadata['sheets']]
-    # print("Available Sheets:", sheet_titles)
-    
-    range_name = 'Habit Tracker!A2:D' # specifies a sheet and cell range to fetch data from
+    service = build('sheets', 'v4', credentials=creds)
 
-    sheet = service.spreadsheets() # reference to the Google Sheets API for spreadsheet operations
-    result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute() # fetch data from the spreadsheet over the specified range of cells
+    range_name = 'Habit Tracker!A2:D'  # Adjust range as needed
+    sheet = service.spreadsheets()
+    result = sheet.values().get(
+        spreadsheetId=spreadsheet_id,
+        range=range_name
+    ).execute()
 
-    values = result.get('values', []) # list of lists containing the values read from the spreadsheet (rows of the spreadsheet)
-
+    values = result.get('values', [])
     return values
 
 '''add_habit adds a new habit to the Google Sheet.'''
 def add_habit(creds, spreadsheet_id, habit):
-    service = build('sheets', 'v4', credentials=creds)  # Google Sheets API client
-    sheet_name = 'Habit Tracker'  # Name of the sheet to modify
+    service = build('sheets', 'v4', credentials=creds)
+    sheet_name = 'Habit Tracker'
 
-    # Prepare data to append
-    new_row = [habit]  # Habit to add 
+    new_row = [habit]
+    range_name = f'{sheet_name}!A2'
+    body = {'values': [new_row]}
 
-    # Append new habit to the sheet
-    range_name = f'{sheet_name}!A2'  # Start appending from row 2 because row 1 are headers
-    body = {
-        'values': [new_row]
-    }
-
-    # Append the new habit to the sheet
-    sheet = service.spreadsheets()
-    sheet.values().append(
+    service.spreadsheets().values().append(
         spreadsheetId=spreadsheet_id,
         range=range_name,
-        valueInputOption="RAW",  # Values are inserted as raw text
+        valueInputOption="RAW",
         body=body
     ).execute()
 
     print(f"\n✅ Habit '{habit}' added successfully!\n")
+
+'''edit_habit allows the user to modify an existing habit in the Google Sheet.'''
+def edit_habit(creds, spreadsheet_id):
+    service = build('sheets', 'v4', credentials=creds)
+    sheet_name = 'Habit Tracker'
+
+    data = get_sheet_data(creds, spreadsheet_id)
+    if not data:
+        print("No habits to edit.\n")
+        return
+
+    print("\nCurrent Habits:")
+    for i, row in enumerate(data, start=1):
+        print(f"  {i}. {row[0]}")
+
+    try:
+        choice = int(input("\nEnter the number of the habit to edit: "))
+        if choice < 1 or choice > len(data):
+            print("Invalid selection.")
+            return
+    except ValueError:
+        print("Invalid input. Please enter a number.")
+        return
+
+    new_value = input("Enter the new habit description: ").strip()
+    if not new_value:
+        print("No changes made.")
+        return
+
+    cell_range = f"{sheet_name}!A{choice + 1}"
+    update_body = {'values': [[new_value]]}
+
+    try:
+        service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=cell_range,
+            valueInputOption="RAW",
+            body=update_body
+        ).execute()
+        print(f"\n✅ Habit updated to '{new_value}' successfully!\n")
+    except Exception as e:
+        print(f"❌ Error updating habit: {e}")

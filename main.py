@@ -1,5 +1,5 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google_sheets import create_sheet, get_sheet_data, add_habit
+from google_sheets import create_sheet, get_sheet_data, add_habit, edit_habit
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -88,7 +88,7 @@ def main():
                     # assuming columns are Date, Habit, … 
                     print("  " + " | ".join(row))
         elif choice == "3":
-            print("Currently Unimplemented\n")
+            edit_habit(creds, spreadsheet_id)
         elif choice == "4":
             print("Currently Unimplemented\n")
         elif choice == "5":
