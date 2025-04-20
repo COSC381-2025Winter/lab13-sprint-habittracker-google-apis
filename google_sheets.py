@@ -3,16 +3,27 @@ from googleapiclient.discovery import build
 
 '''create_sheet uses the user's Google credentials and a sheet title they entered to create a new Google Spreadsheet '''
 def create_sheet(creds, title: str):
-    """Create a new Google Sheet and return its spreadsheetId."""
+    """Create a new Google Sheet with a worksheet named 'Habit Tracker' and return its spreadsheetId."""
     service = build('sheets', 'v4', credentials=creds)
+
     body = {
-        'properties': {'title': title}
+        'properties': {'title': title},  # Spreadsheet title
+        'sheets': [
+            {
+                'properties': {
+                    'title': 'Habit Tracker'  # Name of the first sheet/tab
+                }
+            }
+        ]
     }
+
     sheet = service.spreadsheets().create(
         body=body,
         fields='spreadsheetId'
-    ).execute() # create a Google Sheet with the provided title
-    return sheet['spreadsheetId'] # return the spreadsheet ID
+    ).execute()
+
+    return sheet['spreadsheetId']
+
 
 '''get_sheet_data retrieves data from a Google Sheet using the Google Sheets API. '''
 def get_sheet_data(creds, spreadsheet_id):
