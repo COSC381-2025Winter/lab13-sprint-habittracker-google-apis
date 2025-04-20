@@ -15,10 +15,8 @@ def create_sheet(creds, title: str):
     return sheet['spreadsheetId'] # return the spreadsheet ID
 
 '''get_sheet_data retrieves data from a Google Sheet using the Google Sheets API. '''
-def get_sheet_data(creds):
+def get_sheet_data(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials = creds) # create a Google Sheets API client authenticated with the user's credentials
-
-    spreadsheet_id = '1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4' # unique identifier for the target Google Spreadsheet
     
     # Get the sheet metadata to check the sheet name(s)
     # sheet_metadata = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
