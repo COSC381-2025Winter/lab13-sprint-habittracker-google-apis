@@ -92,7 +92,14 @@ def main():
         elif choice == "4":
             print("Currently Unimplemented\n")
         elif choice == "5":
-            print("Currently Unimplemented\n")
+            data = get_sheet_data(creds, spreadsheet_id)
+            if not data:
+                print("No habits found.")
+            else:
+                print("\nHabit List:")
+                for row in data:
+                    # assuming columns are Date, Habit, … 
+                    print("  " + " | ".join(row))
         elif choice == "6":
             print("Currently Unimplemented\n")
         elif choice == "7":
