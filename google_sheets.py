@@ -56,35 +56,49 @@ def add_habit(creds, spreadsheet_id, habit):
 
     print(f"\n✅ Habit '{habit}' added successfully!\n")
 
+'''is_habits_empty checks if the Habit Tracker spreadsheet is empty and returns True or False accordingly.'''
+def is_habits_empty(creds, spreadsheet_id, data):
+    if not data:
+        return True
+    else:
+        return False
+
+'''print_current_habits displays the current habits the user has entered with a number identifier for selection.'''
+def print_current_habits(data):
+    print("\nCurrent Habits:")
+    for i, row in enumerate(data, start=1):
+        print(f"  {i}. {row[0]}")
+
 '''edit_habit allows the user to modify an existing habit in the Google Sheet.'''
 def edit_habit(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials=creds)
     sheet_name = 'Habit Tracker'
 
     data = get_sheet_data(creds, spreadsheet_id)
-    if not data:
-        print("No habits to edit.\n")
+
+    if is_habits_empty(creds, spreadsheet_id, data):
+        print("No habits found to edit.\n")
         return
 
-    print("\nCurrent Habits:")
-    for i, row in enumerate(data, start=1):
-        print(f"  {i}. {row[0]}")
+    print_current_habits(data)
 
     try:
         choice = int(input("\nEnter the number of the habit to edit: "))
         if choice < 1 or choice > len(data):
-            print("Invalid selection.")
+            print("Invalid selection.\n")
             return
     except ValueError:
-        print("Invalid input. Please enter a number.")
+        print("Invalid input. Please enter a number.\n")
         return
 
     new_value = input("Enter the new habit description: ").strip()
     if not new_value:
-        print("No changes made.")
+        print("No changes made.\n")
         return
-
-    cell_range = f"{sheet_name}!A{choice + 1}"
+    
+    # Row number in the sheet = index + 2 (1-based sheet rows, plus header)
+    row_number = choice + 1
+    cell_range = f"{sheet_name}!A{row_number}"
     update_body = {'values': [[new_value]]}
 
     try:
@@ -98,17 +112,14 @@ def edit_habit(creds, spreadsheet_id):
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
 
+'''delete_habit allows the user to remove a habit from their Habit Tracker Sheet'''
 def delete_habit(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials=creds)
-    sheet_name = 'Habit Tracker' 
-    sheet = service.spreadsheets()
+    sheet_name = 'Habit Tracker'
+    values = get_sheet_data(creds, spreadsheet_id)
 
-    range_name = f"{sheet_name}!A2:A"
-    result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-    values = result.get('values', [])
-
-    if not values:
-        print("No habits found.")
+    if is_habits_empty(creds, spreadsheet_id, values):
+        print("No habits found to delete.\n")
         return
 
     habits = [row[0] for row in values if row]  # filter out empty rows
@@ -121,9 +132,61 @@ def delete_habit(creds, spreadsheet_id):
         index = int(input("\nEnter the number of the habit to delete: ")) - 1
         habit_to_delete = habits[index]
     except (ValueError, IndexError):
-        print("❌ Invalid selection.")
+        print("❌ Invalid selection.\n")
         return
 
     range_to_clear = f"{sheet_name}!A{index + 2}"  # A2 is the first habit
-    sheet.values().clear(spreadsheetId=spreadsheet_id, range=range_to_clear, body={}).execute()
-    print(f"✅ Habit '{habit_to_delete}' deleted successfully!")
+    service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range=range_to_clear, body={}).execute()
+    print(f"✅ Habit '{habit_to_delete}' deleted successfully!\n")
+
+'''mark_habit_complete changes the completion status of a habit.'''
+def mark_habit_complete(creds, spreadsheet_id):
+    service = build('sheets', 'v4', credentials=creds)
+    sheet_name = 'Habit Tracker'
+
+    # Get sheet data
+    data = get_sheet_data(creds, spreadsheet_id)
+
+    # Check if the habit list is empty before proceeding
+    if is_habits_empty(creds, spreadsheet_id, data):
+        print("No habits found to mark complete.\n")
+        return
+
+    # Display habit list to the user
+    print_current_habits(data)
+
+    # Prompt user for selection
+    try:
+        choice = int(input("\nEnter the number of the habit to mark complete: "))
+        if choice < 1 or choice > len(data):
+            print("Invalid selection.\n")
+            return
+    except ValueError:
+        print("Invalid input. Please enter a number.\n")
+        return
+
+    # Get habit name for confirmation message
+    selected_row = data[choice - 1]
+    habit_name = selected_row[0] if len(selected_row) > 0 else "Unknown Habit"
+
+    # Check if the habit is already marked complete
+    status = selected_row[3] if len(selected_row) > 3 else ""
+    if status == "✅":
+        print(f"Habit '{habit_name}' is already marked complete.\n")
+        return
+
+    # Row number in the sheet = index + 2 (1-based sheet rows, plus header)
+    row_number = choice + 1
+    cell_range = f"{sheet_name}!D{row_number}"
+    update_body = {'values': [["✅"]]}
+
+    try:
+        service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=cell_range,
+            valueInputOption="RAW",
+            body=update_body
+        ).execute()
+        print(f"\n✅ Habit '{habit_name}' marked complete!\n")
+    except Exception as e:
+        print(f"❌ Error updating habit: {e}\n")
