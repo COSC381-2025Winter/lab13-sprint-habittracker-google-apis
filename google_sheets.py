@@ -88,7 +88,7 @@ def edit_habit(creds, spreadsheet_id):
 
     data = get_sheet_data(creds, spreadsheet_id)
 
-    if is_habits_empty(creds, spreadsheet_id, data):
+    if is_habits_empty(data):
         print("\nNo habits found to edit.\n")
         return
 
@@ -130,7 +130,7 @@ def delete_habit(creds, spreadsheet_id):
     sheet_name = 'Habit Tracker'
     values = get_sheet_data(creds, spreadsheet_id)
 
-    if is_habits_empty(creds, spreadsheet_id, values):
+    if is_habits_empty(values):
         print("\nNo habits found to delete.\n")
         return
 
@@ -160,7 +160,7 @@ def mark_habit_complete(creds, spreadsheet_id):
     data = get_sheet_data(creds, spreadsheet_id)
 
     # Check if the habit list is empty before proceeding
-    if is_habits_empty(creds, spreadsheet_id, data):
+    if is_habits_empty(data):
         print("\nNo habits found to mark complete.\n")
         return
 
