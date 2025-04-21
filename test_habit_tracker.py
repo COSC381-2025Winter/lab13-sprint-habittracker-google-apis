@@ -206,3 +206,48 @@ def test_mark_habit_complete_no_habits(monkeypatch, fake_service, capsys):
 
     # Assert
     assert "No habits found to mark complete" in captured.out
+
+def test_create_sheet(monkeypatch):
+    # Arrange: Mock Google Sheets API response
+    class FakeBatchUpdate:
+        def execute(self):
+            return {}  # Simulate the response of a successful batch update
+
+    class FakeUpdateValues:
+        def update(self, spreadsheetId, range, valueInputOption, body):
+            # Simulate a successful values update (no return value needed)
+            return self
+    
+        def execute(self):
+            return {}  # Simulate the response of a successful update
+    
+    class FakeCreateSheet:
+        def execute(self):
+            # Simulate successful sheet creation with both spreadsheetId and sheets
+            return {
+                "spreadsheetId": DUMMY_SPREADSHEET_ID,
+                "sheets": [{"properties": {"sheetId": 1234}}]  # Include 'sheets' key with mock sheetId
+            }
+
+    class FakeSpreadsheets:
+        def create(self, body, fields=None):
+            # Handle the 'fields' argument
+            assert fields == 'spreadsheetId,sheets.properties.sheetId'  # verify the fields parameter
+            return FakeCreateSheet()
+        
+        def values(self):
+            # Mock the values method that is used to update the sheet
+            return FakeUpdateValues()
+        
+        def batchUpdate(self, spreadsheetId, body):
+            # Mock the batchUpdate method
+            return FakeBatchUpdate()
+
+    class FakeService:
+        def spreadsheets(self):
+            return FakeSpreadsheets()
+
+    monkeypatch.setattr(google_sheets, "build", lambda *args, **kwargs: FakeService())
+
+    # Act: Call the function to test
+    spreadsheet_id = google_sheets.create_sheet(DUMMY_CREDS, "Test Habit Sheet")

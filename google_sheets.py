@@ -1,28 +1,91 @@
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-'''create_sheet uses the user's Google credentials and a sheet title they entered to create a new Google Spreadsheet '''
 def create_sheet(creds, title: str):
-    """Create a new Google Sheet with a worksheet named 'Habit Tracker' and return its spreadsheetId."""
+    """Create a new Google Sheet with formatted headers of equal width and centered text."""
     service = build('sheets', 'v4', credentials=creds)
 
-    body = {
-        'properties': {'title': title},  # Spreadsheet title
-        'sheets': [
-            {
-                'properties': {
-                    'title': 'Habit Tracker'  # Name of the first sheet/tab
-                }
-            }
-        ]
+    # Create a new spreadsheet
+    spreadsheet_body = {
+        'properties': {'title': title},
+        'sheets': [{'properties': {'title': 'Habit Tracker'}}]
     }
 
-    sheet = service.spreadsheets().create(
-        body=body,
-        fields='spreadsheetId'
+    spreadsheet = service.spreadsheets().create(
+        body=spreadsheet_body,
+        fields='spreadsheetId,sheets.properties.sheetId'
     ).execute()
 
-    return sheet['spreadsheetId']
+    spreadsheet_id = spreadsheet['spreadsheetId']
+    sheet_id = spreadsheet['sheets'][0]['properties']['sheetId']
+    sheet_name = 'Habit Tracker'
+
+    # Header values
+    headers = [["Task", "Date Created", "Target Completion Date", "Completion Status", "Updated"]]
+    header_range = f"{sheet_name}!A1:E1"
+
+    service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id,
+        range=header_range,
+        valueInputOption="RAW",
+        body={"values": headers}
+    ).execute()
+
+    # Apply formatting and fixed column widths
+    requests = [
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 0,
+                    "endRowIndex": 1
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": {"red": 0.9, "green": 0.9, "blue": 0.9},
+                        "horizontalAlignment": "CENTER",
+                        "wrapStrategy": "WRAP",
+                        "textFormat": {"bold": True}
+                    }
+                },
+                "fields": "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,wrapStrategy)"
+            }
+        },
+        {
+            "updateSheetProperties": {
+                "properties": {
+                    "sheetId": sheet_id,
+                    "gridProperties": {"frozenRowCount": 1}
+                },
+                "fields": "gridProperties.frozenRowCount"
+            }
+        }
+    ]
+
+    # Set fixed column widths (e.g., 200 pixels)
+    column_width = 200
+    for col_index in range(5):  # Columns A–E
+        requests.append({
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": col_index,
+                    "endIndex": col_index + 1
+                },
+                "properties": {"pixelSize": column_width},
+                "fields": "pixelSize"
+            }
+        })
+
+    # Send batch update
+    service.spreadsheets().batchUpdate(
+        spreadsheetId=spreadsheet_id,
+        body={"requests": requests}
+    ).execute()
+
+    return spreadsheet_id
+
 
 '''get_sheet_data retrieves data from a Google Sheet using the Google Sheets API.'''
 def get_sheet_data(creds, spreadsheet_id):
