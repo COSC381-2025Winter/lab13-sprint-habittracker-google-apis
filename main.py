@@ -1,5 +1,5 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google_sheets import create_sheet, get_sheet_data, add_habit, edit_habit, delete_habit
+from google_sheets import create_sheet, get_sheet_data, add_habit, edit_habit, delete_habit, mark_habit_complete
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -20,9 +20,9 @@ def is_valid_spreadsheet(creds, spreadsheet_id):
         return True
     except HttpError as error:
         if error.resp.status in [403, 404]:
-            print("❌ Error: Unable to access the spreadsheet. Make sure the URL is valid and shared with your account.")
+            print("Error: Unable to access the spreadsheet. Make sure the URL is valid and shared with your account.")
         else:
-            print(f"❌ An unexpected error occurred: {error}")
+            print(f"An unexpected error occurred: {error}")
         return False
 
 ''' Ask the user if they want to reuse an existing sheet or create a new one. Returns the chosen spreadsheet_id. '''
@@ -71,22 +71,14 @@ def main():
         print("  3. Edit Habit")
         print("  4. Delete Habit")
         print("  5. Show Habit List")
-        print("  6. Add Habits to Calendar")
-        print("  7. Exit")
-        choice = input("Choose an option (1–7): ")
+        print("  6. Exit")
+        choice = input("Choose an option (1–6): ")
 
         if choice == "1":
             habit = input("Enter a habit to track: ")
             add_habit(creds, spreadsheet_id, habit)
         elif choice == "2":
-            data = get_sheet_data(creds, spreadsheet_id)
-            if not data:
-                print("No habits found.")
-            else:
-                print("\nHabit List:")
-                for row in data:
-                    # assuming columns are Date, Habit, …
-                    print("  " + " | ".join(row))
+            mark_habit_complete(creds, spreadsheet_id)
         elif choice == "3":
             edit_habit(creds, spreadsheet_id)
         elif choice == "4":
@@ -101,8 +93,6 @@ def main():
                     # assuming columns are Date, Habit, …
                     print("  " + " | ".join(row))
         elif choice == "6":
-            print("Currently Unimplemented\n")
-        elif choice == "7":
             print("Goodbye!")
             break
         else:
