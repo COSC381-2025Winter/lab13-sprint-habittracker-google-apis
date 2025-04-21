@@ -1,5 +1,5 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google_sheets import create_sheet, get_sheet_data, add_habit, edit_habit, delete_habit, mark_habit_complete
+from google_sheets import create_sheet, get_sheet_data, add_habit, edit_habit, show_habits, delete_habit, mark_habit_complete
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -84,19 +84,12 @@ def main():
         elif choice == "4":
             delete_habit(creds, spreadsheet_id)
         elif choice == "5":
-            data = get_sheet_data(creds, spreadsheet_id)
-            if not data:
-                print("No habits found.")
-            else:
-                print("\nHabit List:")
-                for row in data:
-                    # assuming columns are Date, Habit, …
-                    print("  " + " | ".join(row))
+            show_habits(creds, spreadsheet_id)
         elif choice == "6":
             print("Goodbye!")
             break
         else:
-            print("Invalid choice. Please enter a number 1-7.")
+            print("Invalid choice. Please enter a number 1-6.")
 
 if __name__ == "__main__":
     main()

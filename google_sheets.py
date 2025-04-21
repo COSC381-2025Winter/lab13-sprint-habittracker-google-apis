@@ -28,7 +28,7 @@ def create_sheet(creds, title: str):
 def get_sheet_data(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials=creds)
 
-    range_name = 'Habit Tracker!A2:D'  # Adjust range as needed
+    range_name = 'Habit Tracker!A2:E'  # Adjust range as needed
     sheet = service.spreadsheets()
     result = sheet.values().get(
         spreadsheetId=spreadsheet_id,
@@ -37,6 +37,18 @@ def get_sheet_data(creds, spreadsheet_id):
 
     values = result.get('values', [])
     return values
+
+def show_habits(creds, spreadsheet_id):
+    data = get_sheet_data(creds, spreadsheet_id)
+    if is_habits_empty(data):
+        print("\nNo habits found.\n")
+        return
+    
+    print("\nHabit List:")
+    for row in data:
+        # assuming columns are Date, Habit, …
+        print("  " + " | ".join(row))
+    print() # print a newline
 
 '''add_habit adds a new habit to the Google Sheet.'''
 def add_habit(creds, spreadsheet_id, habit):
@@ -57,7 +69,7 @@ def add_habit(creds, spreadsheet_id, habit):
     print(f"\n✅ Habit '{habit}' added successfully!\n")
 
 '''is_habits_empty checks if the Habit Tracker spreadsheet is empty and returns True or False accordingly.'''
-def is_habits_empty(creds, spreadsheet_id, data):
+def is_habits_empty(data):
     if not data:
         return True
     else:
@@ -77,7 +89,7 @@ def edit_habit(creds, spreadsheet_id):
     data = get_sheet_data(creds, spreadsheet_id)
 
     if is_habits_empty(creds, spreadsheet_id, data):
-        print("No habits found to edit.\n")
+        print("\nNo habits found to edit.\n")
         return
 
     print_current_habits(data)
@@ -119,7 +131,7 @@ def delete_habit(creds, spreadsheet_id):
     values = get_sheet_data(creds, spreadsheet_id)
 
     if is_habits_empty(creds, spreadsheet_id, values):
-        print("No habits found to delete.\n")
+        print("\nNo habits found to delete.\n")
         return
 
     habits = [row[0] for row in values if row]  # filter out empty rows
@@ -149,7 +161,7 @@ def mark_habit_complete(creds, spreadsheet_id):
 
     # Check if the habit list is empty before proceeding
     if is_habits_empty(creds, spreadsheet_id, data):
-        print("No habits found to mark complete.\n")
+        print("\nNo habits found to mark complete.\n")
         return
 
     # Display habit list to the user
