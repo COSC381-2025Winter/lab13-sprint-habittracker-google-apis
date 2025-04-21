@@ -97,3 +97,33 @@ def edit_habit(creds, spreadsheet_id):
         print(f"\n✅ Habit updated to '{new_value}' successfully!\n")
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
+
+def delete_habit(creds, spreadsheet_id):
+    service = build('sheets', 'v4', credentials=creds)
+    sheet_name = 'Habit Tracker' 
+    sheet = service.spreadsheets()
+
+    range_name = f"{sheet_name}!A2:A"
+    result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
+    values = result.get('values', [])
+
+    if not values:
+        print("No habits found.")
+        return
+
+    habits = [row[0] for row in values if row]  # filter out empty rows
+
+    print("\nCurrent Habits:")
+    for idx, habit in enumerate(habits, 1):
+        print(f"{idx}. {habit}")
+
+    try:
+        index = int(input("\nEnter the number of the habit to delete: ")) - 1
+        habit_to_delete = habits[index]
+    except (ValueError, IndexError):
+        print("❌ Invalid selection.")
+        return
+
+    range_to_clear = f"{sheet_name}!A{index + 2}"  # A2 is the first habit
+    sheet.values().clear(spreadsheetId=spreadsheet_id, range=range_to_clear, body={}).execute()
+    print(f"✅ Habit '{habit_to_delete}' deleted successfully!")
