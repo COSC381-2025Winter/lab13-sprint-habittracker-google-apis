@@ -94,3 +94,28 @@ def test_edit_habit(monkeypatch, capsys):
     # Assert
     captured = capsys.readouterr()
     assert f"Habit '{DUMMY_HABIT}' updated to 'Drink water 2.0' in sheet '{DUMMY_SPREADSHEET_ID}'." in captured.out
+
+''' test_delete_habit simulates deleting an existing habit from the Habit Tracker Sheet '''
+def test_delete_habit(monkeypatch, capsys):
+    # Arrange
+    inputs = iter(["2"])  # Simulate user selecting the 2nd habit ("Exercise")
+    monkeypatch.setattr(builtins, "input", lambda _: next(inputs))  # Mock user input
+
+    # Fake get_sheet_data output to simulate the existing habits
+    def fake_get_sheet_data(creds, spreadsheet_id):
+        return [["Drink water"], ["Exercise"], ["Read"]]
+
+    def fake_delete_habit(creds, spreadsheet_id):
+        habit_to_delete = "Exercise"
+        print(f"✅ Habit '{habit_to_delete}' deleted successfully!")
+
+    monkeypatch.setattr(main, "get_sheet_data", fake_get_sheet_data)  # Mock sheet data
+    monkeypatch.setattr(main, "delete_habit", fake_delete_habit)  # Mock delete_habit behavior
+
+    # Act
+    main.delete_habit("dummy_credentials", DUMMY_SPREADSHEET_ID)
+
+    # Assert
+    captured = capsys.readouterr()
+    assert "✅ Habit 'Exercise' deleted successfully!" in captured.out
+
