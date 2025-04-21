@@ -125,7 +125,7 @@ def test_mark_habit_complete_success(monkeypatch, fake_service):
     data = [["Task", "Date Created", "Target Date", "Status", "Updated Time"],
             ["Drink water", "date1", "date2", "❌", "-"]]
     monkeypatch.setattr(main, "get_sheet_data", lambda c, s: data)
-    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda c, s, d: False)
+    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda d: False)
     monkeypatch.setattr(google_sheets, "print_current_habits", lambda d: None)
     monkeypatch.setattr(builtins, "input", lambda _: "1")
 
@@ -145,7 +145,7 @@ def test_mark_habit_complete_already_done(monkeypatch, fake_service, capsys):
     ]
 
     monkeypatch.setattr(google_sheets, "get_sheet_data", lambda c, s: data)
-    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda c, s, d: False)
+    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda d: False)
     monkeypatch.setattr(google_sheets, "print_current_habits", lambda d: None)
     monkeypatch.setattr(builtins, "input", lambda _: "2")  # selects "Walk the dog"
 
@@ -165,7 +165,7 @@ def test_mark_habit_complete_invalid_selection(monkeypatch, fake_service, capsys
             ["A", "d1", "d2", "❌", "-"],
             ["B", "d3", "d4", "❌", "-"]]
     monkeypatch.setattr(main, "get_sheet_data", lambda c, s: data)
-    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda c, s, d: False)
+    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda d: False)
     monkeypatch.setattr(google_sheets, "print_current_habits", lambda d: None)
     monkeypatch.setattr(builtins, "input", lambda _: "5")  # Invalid index
 
@@ -182,7 +182,7 @@ def test_mark_habit_complete_invalid_input(monkeypatch, fake_service, capsys):
     data = [["Task", "Date Created", "Target Date", "Status", "Updated Time"],
             ["C", "d1", "d2", "❌", "-"]]
     monkeypatch.setattr(main, "get_sheet_data", lambda c, s: data)
-    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda c, s, d: False)
+    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda d: False)
     monkeypatch.setattr(google_sheets, "print_current_habits", lambda d: None)
     monkeypatch.setattr(builtins, "input", lambda _: "abc")  # Invalid input
 
@@ -198,7 +198,7 @@ def test_mark_habit_complete_no_habits(monkeypatch, fake_service, capsys):
     # Arrange
     data = [["Task", "Date Created", "Target Date", "Status", "Updated Time"]]
     monkeypatch.setattr(main, "get_sheet_data", lambda c, s: data)
-    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda c, s, d: True)
+    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda d: True)
 
     # Act
     main.mark_habit_complete(DUMMY_CREDS, DUMMY_SPREADSHEET_ID)
