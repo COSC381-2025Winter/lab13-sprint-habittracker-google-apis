@@ -1,5 +1,7 @@
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from datetime import datetime
+from googleapiclient.discovery import build
 
 def create_sheet(creds, title: str):
     """Create a new Google Sheet with formatted headers of equal width and centered text."""
@@ -159,6 +161,8 @@ def edit_habit(creds, spreadsheet_id):
 
     try:
         choice = int(input("\nEnter the number of the habit to edit: "))
+        update_timestamp(creds,spreadsheet_id,choice+1)
+
         if choice < 1 or choice > len(data):
             print("Invalid selection.\n")
             return
@@ -186,6 +190,28 @@ def edit_habit(creds, spreadsheet_id):
         print(f"\n✅ Habit updated to '{new_value}' successfully!\n")
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
+
+def update_timestamp(creds, spreadsheet_id, row_index):
+    service = build('sheets', 'v4', credentials=creds)
+
+    # Current date and time
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    # Target range in column E for the given row
+    range_to_update = f'Habit Tracker!E{row_index}'
+
+    body = {
+        'values': [[now]]
+    }
+
+    service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id,
+        range=range_to_update,
+        valueInputOption='RAW',
+        body=body
+    ).execute()
+
+    print(f"Timestamp updated in E{row_index}: {now}")
 
 '''delete_habit allows the user to remove a habit from their Habit Tracker Sheet'''
 def delete_habit(creds, spreadsheet_id):
@@ -265,3 +291,4 @@ def mark_habit_complete(creds, spreadsheet_id):
         print(f"\n✅ Habit '{habit_name}' marked complete!\n")
     except Exception as e:
         print(f"❌ Error updating habit: {e}\n")
+
