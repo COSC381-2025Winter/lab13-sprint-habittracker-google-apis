@@ -1,5 +1,7 @@
 import builtins
 import main
+import pytest
+from datetime import datetime
 
 # Dummy values
 DUMMY_SPREADSHEET_ID = "dummy_spreadsheet_id"
@@ -94,3 +96,58 @@ def test_edit_habit(monkeypatch, capsys):
     # Assert
     captured = capsys.readouterr()
     assert f"Habit '{DUMMY_HABIT}' updated to 'Drink water 2.0' in sheet '{DUMMY_SPREADSHEET_ID}'." in captured.out
+
+
+# Shared state for assertions
+called = {}
+
+# --- Custom Mock Classes ---
+
+class MockExecute:
+    def execute(self):
+        called['executed'] = True
+        return {}
+
+class MockUpdate:
+    def update(self, spreadsheetId, range, valueInputOption, body):
+        called['spreadsheetId'] = spreadsheetId
+        called['range'] = range
+        called['valueInputOption'] = valueInputOption
+        called['body'] = body
+        return MockExecute()
+
+class MockValues:
+    def values(self):
+        return MockUpdate()
+
+class MockSpreadsheets:
+    def spreadsheets(self):
+        return MockValues()
+
+class MockService:
+    def spreadsheets(self):
+        return MockValues()
+
+def mock_build(service_name, version, credentials=None):
+    assert service_name == 'sheets'
+    assert version == 'v4'
+    return MockService()
+
+# --- Pytest Test Case ---
+
+def test_update_timestamp(monkeypatch):
+    
+    
+    import google_sheets  # replace with your file name (e.g., `import google_sheets`)
+    monkeypatch.setattr(google_sheets, 'build', mock_build)
+    from google_sheets import  update_timestamp
+    update_timestamp(creds=None, spreadsheet_id='spread123', row_index=2)
+
+    # Assertions
+    assert called['spreadsheetId'] == 'spread123'
+    assert called['range'] == 'Habit Tracker!E2'
+    assert called['valueInputOption'] == 'RAW'
+    assert 'values' in called['body']
+    assert isinstance(called['body']['values'][0][0], str)
+    datetime.strptime(called['body']['values'][0][0], '%Y-%m-%d %H:%M')  # Check timestamp format
+    assert called['executed'] is True

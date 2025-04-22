@@ -1,5 +1,7 @@
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from datetime import datetime
+from googleapiclient.discovery import build
 
 '''create_sheet uses the user's Google credentials and a sheet title they entered to create a new Google Spreadsheet '''
 def create_sheet(creds, title: str):
@@ -28,7 +30,7 @@ def create_sheet(creds, title: str):
 def get_sheet_data(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials=creds)
 
-    range_name = 'Habit Tracker!A2:D'  # Adjust range as needed
+    range_name = 'Habit Tracker!A2:E'  # Adjust range as needed
     sheet = service.spreadsheets()
     result = sheet.values().get(
         spreadsheetId=spreadsheet_id,
@@ -72,6 +74,8 @@ def edit_habit(creds, spreadsheet_id):
 
     try:
         choice = int(input("\nEnter the number of the habit to edit: "))
+        update_timestamp(creds,spreadsheet_id,choice+1)
+
         if choice < 1 or choice > len(data):
             print("Invalid selection.")
             return
@@ -97,3 +101,25 @@ def edit_habit(creds, spreadsheet_id):
         print(f"\n✅ Habit updated to '{new_value}' successfully!\n")
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
+
+def update_timestamp(creds, spreadsheet_id, row_index):
+    service = build('sheets', 'v4', credentials=creds)
+
+    # Current date and time
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    # Target range in column E for the given row
+    range_to_update = f'Habit Tracker!E{row_index}'
+
+    body = {
+        'values': [[now]]
+    }
+
+    service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id,
+        range=range_to_update,
+        valueInputOption='RAW',
+        body=body
+    ).execute()
+
+    print(f"Timestamp updated in E{row_index}: {now}")
