@@ -1,14 +1,14 @@
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google_sheets import create_sheet, get_sheet_data, add_habit, edit_habit,update_timestamp
+from google_sheets import create_sheet, get_sheet_data, add_habit, edit_habit, show_habits, delete_habit, mark_habit_complete, update_timestamp
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets'] # define required permissions from user's Google account
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']  # define required permissions from user's Google account
 
-'''authenticate_user authenticates the user's Google account using OAuth flow, ensuring that the program has the necessary permissions to create a new Google Spreadsheet, make edits to it as necessary, and make changes to their Google Calendar. Upon successful authentication, credentials are returned. '''
+'''authenticate_user authenticates the user's Google account using OAuth flow, ensuring that the program has the necessary permissions to create a new Google Spreadsheet, make edits to it as necessary, and make changes to their Google Calendar. Upon successful authentication, credentials are returned.'''
 def authenticate_user():
-    flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES) # create the user authentication window with necessary permissions
-    creds = flow.run_local_server(port=0) # run user authentication window 
+    flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)  # create the user authentication window with necessary permissions
+    creds = flow.run_local_server(port=0)  # run user authentication window 
     print()  # print newline after the browser‑redirect log
     return creds
 
@@ -20,9 +20,9 @@ def is_valid_spreadsheet(creds, spreadsheet_id):
         return True
     except HttpError as error:
         if error.resp.status in [403, 404]:
-            print("❌ Error: Unable to access the spreadsheet. Make sure the URL is valid and shared with your account.")
+            print("Error: Unable to access the spreadsheet. Make sure the URL is valid and shared with your account.")
         else:
-            print(f"❌ An unexpected error occurred: {error}")
+            print(f"An unexpected error occurred: {error}")
         return False
 
 ''' Ask the user if they want to reuse an existing sheet or create a new one. Returns the chosen spreadsheet_id. '''
@@ -32,7 +32,7 @@ def choose_or_create_sheet(creds):
         if choice == 'y':
             spreadsheet_url = input("Copy and paste your Google Sheet URL here: ").strip()
             try:
-                spreadsheet_id = spreadsheet_url.split("/d/")[1].split("/edit")[0] # try splitting the Google Sheet URL to get only the spreadsheet id
+                spreadsheet_id = spreadsheet_url.split("/d/")[1].split("/edit")[0]  # try splitting the Google Sheet URL to get only the spreadsheet id
                 if is_valid_spreadsheet(creds, spreadsheet_id):
                     print(f"Using existing sheet.\n")
                     return spreadsheet_id
@@ -50,15 +50,15 @@ def choose_or_create_sheet(creds):
 
 '''create_new_sheet is a helper function that creates a Google Spreadsheet after prompting the user to enter a title for it'''
 def create_new_sheet(creds):
-    title = input("Enter a title for your new Habit Tracker sheet: ") # prompt the user to enter a new title for their habit tracker sheet
+    title = input("Enter a title for your new Habit Tracker sheet: ")  # prompt the user to enter a new title for their habit tracker sheet
 
-    spreadsheet_id = create_sheet(creds, title) # create a spreadsheet using the create_sheet function in google_sheets.py
+    spreadsheet_id = create_sheet(creds, title)  # create a spreadsheet using the create_sheet function in google_sheets.py
     print(f"✅ Created Spreadsheet: https://docs.google.com/spreadsheets/d/{spreadsheet_id}\n")
     return spreadsheet_id
 
 '''main handles the logic for displaying the main menu and processing user interactions'''
 def main():
-    creds = authenticate_user() # get the user's Google credentials
+    creds = authenticate_user()  # get the user's Google credentials
 
     # check if the user already has a habit tracker sheet, handle program logic accordingly, and get a reference to the spreadsheet id
     spreadsheet_id = choose_or_create_sheet(creds)
@@ -71,42 +71,25 @@ def main():
         print("  3. Edit Habit")
         print("  4. Delete Habit")
         print("  5. Show Habit List")
-        print("  6. Add Habits to Calendar")
-        print("  7. Exit")
+        print("  6. Exit")
         choice = input("Choose an option (1–6): ")
 
         if choice == "1":
             habit = input("Enter a habit to track: ")
             add_habit(creds, spreadsheet_id, habit)
         elif choice == "2":
-            data = get_sheet_data(creds, spreadsheet_id)
-            if not data:
-                print("No habits found.")
-            else:
-                print("\nHabit List:")
-                for row in data:
-                    # assuming columns are Date, Habit, … 
-                    print("  " + " | ".join(row))
+            mark_habit_complete(creds, spreadsheet_id)
         elif choice == "3":
             edit_habit(creds, spreadsheet_id)
         elif choice == "4":
-            print("Currently Unimplemented\n")
+            delete_habit(creds, spreadsheet_id)
         elif choice == "5":
-            data = get_sheet_data(creds, spreadsheet_id)
-            if not data:
-                print("No habits found.")
-            else:
-                print("\nHabit List:")
-                for row in data:
-                    # assuming columns are Date, Habit, … 
-                    print("  " + " | ".join(row))
+            show_habits(creds, spreadsheet_id)
         elif choice == "6":
-            print("Currently Unimplemented\n")
-        elif choice == "7":
             print("Goodbye!")
             break
         else:
-            print("Invalid choice. Please enter a number 1-7.")
+            print("Invalid choice. Please enter a number 1-6.")
 
 if __name__ == "__main__":
     main()
