@@ -86,10 +86,10 @@ def main():
         elif choice == "5":
             show_habits(creds, spreadsheet_id)
         elif choice == "6":
-            print("Goodbye!")
+            print("\nGoodbye!")
             break
         else:
-            print("Invalid choice. Please enter a number 1-6.")
+            print("\nInvalid choice.\n")
 
 if __name__ == "__main__":
     main()

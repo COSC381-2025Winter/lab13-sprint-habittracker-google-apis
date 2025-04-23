@@ -106,90 +106,58 @@ def test_add_habit(mock_datetime):
             mock_service.values().append().execute.assert_called_once()
 
 # Test: Editing an existing habit
-def test_edit_habit(monkeypatch, capsys):
-    # Arrange
-    inputs = iter(["1", "Drink water 2.0"])
+def test_edit_habit_updates_timestamp(monkeypatch):
+    # --- Arrange ---
+    inputs = iter([
+        "1",                    # Select habit #1
+        "Drink water (updated)",  # New habit name
+        "2025-05-01",           # New target date
+        "02:30 PM",             # New target time
+        "y"                     # Toggle status from ❌ to ✅
+    ])
     monkeypatch.setattr(builtins, "input", lambda _: next(inputs))
-    monkeypatch.setattr(main, "get_sheet_data", lambda c, sid: [["1", DUMMY_HABIT], ["2", "Exercise"]])
-    monkeypatch.setattr(main, "edit_habit", lambda c, sid: print(f"Habit '{DUMMY_HABIT}' updated to 'Drink water 2.0' in sheet '{DUMMY_SPREADSHEET_ID}'."))
 
-    # Act
-    main.edit_habit(DUMMY_CREDS, DUMMY_SPREADSHEET_ID)
+    # Simulate one habit with placeholder data
+    sheet_data = [
+        ["Drink water", "2025-04-20 at 01:00 PM", "2025-04-21 at 12:00 PM", "❌", "-"]
+    ]
+    monkeypatch.setattr(google_sheets, "get_sheet_data", lambda c, s: sheet_data)
+    monkeypatch.setattr(google_sheets, "is_habits_empty", lambda d: False)
+    monkeypatch.setattr(google_sheets, "print_current_habits", lambda d: None)
 
-    # Assert
-    captured = capsys.readouterr()
+    # Track update call
+    calls = {"habit_updated": False, "timestamp_updated": False}
 
-    assert f"Habit '{DUMMY_HABIT}' updated to 'Drink water 2.0' in sheet '{DUMMY_SPREADSHEET_ID}'." in captured.out
+    class FakeValues:
+        def update(self, spreadsheetId, range, valueInputOption, body):
+            if "E" in range:  # Timestamp update
+                calls["timestamp_updated"] = True
+                # Make sure the timestamp is valid format
+                assert datetime.strptime(body["values"][0][0], "%Y-%m-%d %H:%M")
+            else:  # Habit row update
+                calls["habit_updated"] = True
+                assert "Drink water (updated)" in body["values"][0]
+                assert "✅" in body["values"][0]
+            return self
+        def execute(self):
+            return {}
 
+    class FakeSpreadsheets:
+        def values(self):
+            return FakeValues()
 
-# Shared state for assertions
-called = {}
+    class FakeService:
+        def spreadsheets(self):
+            return FakeSpreadsheets()
 
-# --- Custom Mock Classes ---
+    monkeypatch.setattr(google_sheets, "build", lambda *args, **kwargs: FakeService())
 
-class MockExecute:
-    def execute(self):
-        called['executed'] = True
-        return {}
+    # --- Act ---
+    google_sheets.edit_habit(DUMMY_CREDS, DUMMY_SPREADSHEET_ID)
 
-class MockUpdate:
-    def update(self, spreadsheetId, range, valueInputOption, body):
-        called['spreadsheetId'] = spreadsheetId
-        called['range'] = range
-        called['valueInputOption'] = valueInputOption
-        called['body'] = body
-        return MockExecute()
-
-class MockValues:
-    def values(self):
-        return MockUpdate()
-
-class MockSpreadsheets:
-    def spreadsheets(self):
-        return MockValues()
-
-class MockService:
-    def spreadsheets(self):
-        return MockValues()
-
-def mock_build(service_name, version, credentials=None):
-    assert service_name == 'sheets'
-    assert version == 'v4'
-    return MockService()
-
-# --- Pytest Test Case ---
-
-def test_update_timestamp(monkeypatch):
-    
-    
-    import google_sheets  # replace with your file name (e.g., `import google_sheets`)
-    monkeypatch.setattr(google_sheets, 'build', mock_build)
-    from google_sheets import  update_timestamp
-    update_timestamp(creds=None, spreadsheet_id='spread123', row_index=2)
-
-    # Assertions
-    assert called['spreadsheetId'] == 'spread123'
-    assert called['range'] == 'Habit Tracker!E2'
-    assert called['valueInputOption'] == 'RAW'
-    assert 'values' in called['body']
-    assert isinstance(called['body']['values'][0][0], str)
-    datetime.strptime(called['body']['values'][0][0], '%Y-%m-%d %H:%M')  # Check timestamp format
-    assert called['executed'] is True
-   
-# Test: Deleting a habit
-def test_delete_habit(monkeypatch, capsys):
-    # Arrange
-    inputs = iter(["2"])  # Select "Exercise"
-    monkeypatch.setattr(builtins, "input", lambda _: next(inputs))
-    monkeypatch.setattr(main, "get_sheet_data", lambda c, sid: [["Drink water"], ["Exercise"], ["Read"]])
-    monkeypatch.setattr(main, "delete_habit", lambda c, sid: print("✅ Habit 'Exercise' deleted successfully!"))
-
-    # Act
-    main.delete_habit(DUMMY_CREDS, DUMMY_SPREADSHEET_ID)
-
-    # Assert
-    captured = capsys.readouterr()
-    assert "✅ Habit 'Exercise' deleted successfully!" in captured.out
+    # --- Assert ---
+    assert calls["habit_updated"], "Habit row was not updated"
+    assert calls["timestamp_updated"], "Timestamp was not updated"
 
 def test_delete_habit_google_sheets_call(monkeypatch, capsys):
     # Mock sheet data: header + 3 habits

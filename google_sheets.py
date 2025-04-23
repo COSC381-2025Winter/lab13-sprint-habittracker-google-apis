@@ -2,6 +2,7 @@ from datetime import datetime
 import pytz
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from datetime import datetime
 from googleapiclient.discovery import build
 
@@ -117,6 +118,31 @@ def show_habits(creds, spreadsheet_id):
         print("  " + " | ".join(row))
     print() # print a newline
 
+'''set_target_completion_date prompts the user to input a date that they hope to complete the habit by.'''
+def set_target_completion_date():
+    target_date_input = input("Enter target date for completion (YYYY-MM-DD), or leave blank for 'TBD': ")
+    if target_date_input:
+        target_date = datetime.strptime(target_date_input, "%Y-%m-%d").strftime("%A, %B %d")  # "Wednesday, April 23"
+    else:
+        target_date = "TBD"  # Default if no date is provided
+
+    return target_date
+
+'''set_target_completion_time prompts the user to input a time that they hope to complete the habit by.'''
+def set_target_completion_time():
+    # Ask the user for a target time
+    target_time_input = input("Enter target time (HH:MM AM/PM), or leave blank for 'TBD': ")
+    if target_time_input:
+        try:
+            target_time = datetime.strptime(target_time_input, "%I:%M %p").strftime("%I:%M %p")  # "02:37 PM"
+        except ValueError:
+            print("Invalid time format. Please enter time in the format HH:MM AM/PM.")
+            return
+    else:
+        target_time = "TBD"  # Default if no time is provided
+
+    return target_time
+
 '''add_habit adds a new habit to the Google Sheet.'''
 def add_habit(creds, spreadsheet_id, habit):
     service = build('sheets', 'v4', credentials=creds)
@@ -129,22 +155,9 @@ def add_habit(creds, spreadsheet_id, habit):
     creation_date = datetime.now(local_tz).strftime("%A, %B %d at %I:%M %p")  # "Wednesday, April 23 at 2:37 PM"
 
     # Ask the user for a target completion date
-    target_date_input = input("Enter target date for completion (YYYY-MM-DD), or leave blank for 'TBD': ")
-    if target_date_input:
-        target_date = datetime.strptime(target_date_input, "%Y-%m-%d").strftime("%A, %B %d")  # "Wednesday, April 23"
-    else:
-        target_date = "TBD"  # Default if no date is provided
+    target_date = set_target_completion_date()
 
-    # Ask the user for a target time
-    target_time_input = input("Enter target time (HH:MM AM/PM), or leave blank for 'TBD': ")
-    if target_time_input:
-        try:
-            target_time = datetime.strptime(target_time_input, "%I:%M %p").strftime("%I:%M %p")  # "02:37 PM"
-        except ValueError:
-            print("Invalid time format. Please enter time in the format HH:MM AM/PM.")
-            return
-    else:
-        target_time = "TBD"  # Default if no time is provided
+    target_time = set_target_completion_time()
 
     # Set the default completion status to "❌" (incomplete)
     completion_status = "❌"
@@ -192,25 +205,54 @@ def edit_habit(creds, spreadsheet_id):
     print_current_habits(data)
 
     try:
-        choice = int(input("\nEnter the number of the habit to edit: "))
-        update_timestamp(creds,spreadsheet_id,choice+1)
-
-        if choice < 1 or choice > len(data):
+        row_number = int(input("\nEnter the number of the habit to edit: "))
+        if row_number < 1 or row_number > len(data):
             print("Invalid selection.\n")
             return
     except ValueError:
         print("Invalid input. Please enter a number.\n")
         return
-
-    new_value = input("Enter the new habit description: ").strip()
-    if not new_value:
+    
+    old_habit_row = data[row_number - 1] # get a reference to the old habit row before making changes
+    
+    # Prompt the user to enter a new habit description
+    new_habit = input("Enter the new habit description or leave empty to preserve current description: ").strip()
+    if not new_habit:
+        new_habit = old_habit_row[0] # preserve the old habit name
         print("No changes made.\n")
-        return
+
+    # Keep original creation date
+    creation_date = old_habit_row[1] if len(old_habit_row) > 1 else "Unknown"
+    
+    # Ask the user for a target completion date
+    new_target_date = set_target_completion_date()
+    
+    # Ask the user for a target completion time
+    new_target_time = set_target_completion_time()
+
+    while True:
+        try:
+            # Ask user if they want to change the completion status
+            old_status = old_habit_row[3] if len(old_habit_row) > 3 else "❌"
+            choice = input(f"Do you want to toggle completion status? (currently {old_status}) [y/n]: ").strip().lower()
+            if choice == "y":
+                new_completion_status = "✅" if old_status == "❌" else "❌"
+                break
+            elif choice == "n":
+                new_completion_status = old_status
+                break
+            else:
+                print("Invalid input. Please enter either y or n.\n")
+        except ValueError:
+            print("Invalid input. Please enter either y or n.\n")
+    
+    # The new row to be added
+    new_row = [new_habit, creation_date, f"{new_target_date} at {new_target_time}", new_completion_status, ""]
     
     # Row number in the sheet = index + 2 (1-based sheet rows, plus header)
-    row_number = choice + 1
+    row_number = row_number + 1
     cell_range = f"{sheet_name}!A{row_number}"
-    update_body = {'values': [[new_value]]}
+    update_body = {'values': [new_row]}
 
     try:
         service.spreadsheets().values().update(
@@ -219,7 +261,10 @@ def edit_habit(creds, spreadsheet_id):
             valueInputOption="RAW",
             body=update_body
         ).execute()
-        print(f"\n✅ Habit updated to '{new_value}' successfully!\n")
+        print(f"\n✅ Habit '{new_habit}' updated successfully!")
+
+        # Update the updated timestamp upon successful edit
+        update_timestamp(creds,spreadsheet_id, row_number)
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
 
@@ -243,7 +288,7 @@ def update_timestamp(creds, spreadsheet_id, row_index):
         body=body
     ).execute()
 
-    print(f"Timestamp updated in E{row_index}: {now}")
+    print(f"Timestamp updated in E{row_index}: {now}\n")
 
 def delete_habit(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials=creds)
@@ -278,7 +323,7 @@ def delete_habit(creds, spreadsheet_id):
         index = int(input("\nEnter the number of the habit to delete: ")) - 1
         habit_to_delete = habits[index]
     except (ValueError, IndexError):
-        print("❌ Invalid selection.\n")
+        print("Invalid selection.\n")
         return
 
     try:
