@@ -273,6 +273,7 @@ def update_timestamp(creds, spreadsheet_id, row_index):
     service = build('sheets', 'v4', credentials=creds)
 
     # Current date and time formatted as "04/21/2025 at 8:29 PM"
+    local_tz = pytz.timezone('US/Eastern') # set timezone
     now = datetime.now().strftime('%m/%d/%Y at %I:%M %p').lstrip("0").replace(" 0", " ")
 
     # Target range in column E for the given row
