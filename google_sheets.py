@@ -268,11 +268,12 @@ def edit_habit(creds, spreadsheet_id):
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
 
+'''update_timestamp modifies the updated timestamp field when a habit is successfully edited.'''
 def update_timestamp(creds, spreadsheet_id, row_index):
     service = build('sheets', 'v4', credentials=creds)
 
-    # Current date and time
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    # Current date and time formatted as "04/21/2025 at 8:29 PM"
+    now = datetime.now().strftime('%m/%d/%Y at %I:%M %p').lstrip("0").replace(" 0", " ")
 
     # Target range in column E for the given row
     range_to_update = f'Habit Tracker!E{row_index}'
