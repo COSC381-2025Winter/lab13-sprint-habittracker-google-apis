@@ -213,17 +213,30 @@ def update_timestamp(creds, spreadsheet_id, row_index):
 
     print(f"Timestamp updated in E{row_index}: {now}")
 
-'''delete_habit allows the user to remove a habit from their Habit Tracker Sheet'''
 def delete_habit(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials=creds)
     sheet_name = 'Habit Tracker'
-    values = get_sheet_data(creds, spreadsheet_id)
 
+    # Get the correct sheetId by name
+    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    sheets = spreadsheet.get("sheets", "")
+    sheet_id = None
+    for sheet in sheets:
+        if sheet["properties"]["title"] == sheet_name:
+            sheet_id = sheet["properties"]["sheetId"]
+            break
+
+    if sheet_id is None:
+        print("❌ Could not find the sheet ID.\n")
+        return
+
+    # Get habit data
+    values = get_sheet_data(creds, spreadsheet_id)
     if is_habits_empty(values):
         print("\nNo habits found to delete.\n")
         return
 
-    habits = [row[0] for row in values if row]  # filter out empty rows
+    habits = [row[0] for row in values if row]
 
     print("\nCurrent Habits:")
     for idx, habit in enumerate(habits, 1):
@@ -236,9 +249,28 @@ def delete_habit(creds, spreadsheet_id):
         print("❌ Invalid selection.\n")
         return
 
-    range_to_clear = f"{sheet_name}!A{index + 2}"  # A2 is the first habit
-    service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range=range_to_clear, body={}).execute()
-    print(f"✅ Habit '{habit_to_delete}' deleted successfully!\n")
+    try:
+        # Delete the entire row (accounting for header row)
+        requests = [{
+            "deleteDimension": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "ROWS",
+                    "startIndex": index + 1,
+                    "endIndex": index + 2
+                }
+            }
+        }]
+
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={"requests": requests}
+        ).execute()
+
+        print(f"✅ Habit '{habit_to_delete}' deleted successfully!\n")
+    except HttpError as error:
+        print(f"❌ Failed to delete row: {error}\n")
+
 
 '''mark_habit_complete changes the completion status of a habit.'''
 def mark_habit_complete(creds, spreadsheet_id):

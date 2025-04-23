@@ -177,6 +177,74 @@ def test_delete_habit(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "✅ Habit 'Exercise' deleted successfully!" in captured.out
 
+def test_delete_habit_google_sheets_call(monkeypatch, capsys):
+    # Mock sheet data: header + 3 habits
+    sheet_data = [
+        ["Task", "Date Created", "Target Date", "Status", "Updated Time"],
+        ["Drink water", "2025-04-21", "2025-04-22", "❌", "-"],
+        ["Exercise", "2025-04-21", "2025-04-22", "❌", "-"],
+        ["Read", "2025-04-21", "2025-04-22", "❌", "-"]
+    ]
+
+    # Input: User selects the second habit (Exercise)
+    inputs = iter(["2"])
+
+    # Track the batchUpdate request
+    called = {}
+
+    class FakeBatchUpdate:
+        def batchUpdate(self, spreadsheetId, body):
+            called["spreadsheetId"] = spreadsheetId
+            called["body"] = body
+            return self
+
+        def execute(self):
+            return {}
+
+    class FakeValuesGet:
+        def get(self, spreadsheetId, range):
+            # Return the mocked sheet data
+            return self
+
+        def execute(self):
+            return {"values": sheet_data}
+
+    class FakeSpreadsheets:
+        def get(self, spreadsheetId):
+            class GetRequest:
+                def execute(self_inner):
+                    return {
+                        "sheets": [
+                            {"properties": {"title": "Habit Tracker", "sheetId": 0}},
+                            {"properties": {"title": "Another Sheet", "sheetId": 123}}
+                        ]
+                    }
+            return GetRequest()
+
+        def values(self):
+            # Return the fake values.get object
+            return FakeValuesGet()
+
+        def batchUpdate(self, spreadsheetId, body):
+            return FakeBatchUpdate().batchUpdate(spreadsheetId, body)
+
+    class FakeService:
+        def spreadsheets(self):
+            return FakeSpreadsheets()
+
+    monkeypatch.setattr(builtins, "input", lambda _: next(inputs))
+    monkeypatch.setattr(google_sheets, "build", lambda *args, **kwargs: FakeService())
+    monkeypatch.setattr(main, "get_sheet_data", lambda creds, sid: sheet_data)
+
+    # Act
+    main.delete_habit(DUMMY_CREDS, DUMMY_SPREADSHEET_ID)
+
+    # Assert: Check if the correct spreadsheetId and request body were passed
+    assert called["spreadsheetId"] == DUMMY_SPREADSHEET_ID
+    # Check if 'deleteDimension' is in the request body
+    assert "deleteDimension" in called["body"]["requests"][0]
+
+
 # Test: Marking a habit complete
 def test_mark_habit_complete_success(monkeypatch, fake_service):
     # Arrange
