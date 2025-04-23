@@ -2,6 +2,7 @@ from datetime import datetime
 import pytz
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from datetime import datetime
 from googleapiclient.discovery import build
 
@@ -193,7 +194,6 @@ def edit_habit(creds, spreadsheet_id):
 
     try:
         choice = int(input("\nEnter the number of the habit to edit: "))
-        update_timestamp(creds,spreadsheet_id,choice+1)
 
         if choice < 1 or choice > len(data):
             print("Invalid selection.\n")
@@ -220,6 +220,7 @@ def edit_habit(creds, spreadsheet_id):
             body=update_body
         ).execute()
         print(f"\n✅ Habit updated to '{new_value}' successfully!\n")
+        update_timestamp(creds,spreadsheet_id,choice+1)
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
 
@@ -278,7 +279,7 @@ def delete_habit(creds, spreadsheet_id):
         index = int(input("\nEnter the number of the habit to delete: ")) - 1
         habit_to_delete = habits[index]
     except (ValueError, IndexError):
-        print("❌ Invalid selection.\n")
+        print("Invalid selection.\n")
         return
 
     try:
