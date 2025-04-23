@@ -118,6 +118,31 @@ def show_habits(creds, spreadsheet_id):
         print("  " + " | ".join(row))
     print() # print a newline
 
+'''set_target_completion_date prompts the user to input a date that they hope to complete the habit by.'''
+def set_target_completion_date():
+    target_date_input = input("Enter target date for completion (YYYY-MM-DD), or leave blank for 'TBD': ")
+    if target_date_input:
+        target_date = datetime.strptime(target_date_input, "%Y-%m-%d").strftime("%A, %B %d")  # "Wednesday, April 23"
+    else:
+        target_date = "TBD"  # Default if no date is provided
+
+    return target_date
+
+'''set_target_completion_time prompts the user to input a time that they hope to complete the habit by.'''
+def set_target_completion_time():
+    # Ask the user for a target time
+    target_time_input = input("Enter target time (HH:MM AM/PM), or leave blank for 'TBD': ")
+    if target_time_input:
+        try:
+            target_time = datetime.strptime(target_time_input, "%I:%M %p").strftime("%I:%M %p")  # "02:37 PM"
+        except ValueError:
+            print("Invalid time format. Please enter time in the format HH:MM AM/PM.")
+            return
+    else:
+        target_time = "TBD"  # Default if no time is provided
+
+    return target_time
+
 '''add_habit adds a new habit to the Google Sheet.'''
 def add_habit(creds, spreadsheet_id, habit):
     service = build('sheets', 'v4', credentials=creds)
@@ -130,22 +155,9 @@ def add_habit(creds, spreadsheet_id, habit):
     creation_date = datetime.now(local_tz).strftime("%A, %B %d at %I:%M %p")  # "Wednesday, April 23 at 2:37 PM"
 
     # Ask the user for a target completion date
-    target_date_input = input("Enter target date for completion (YYYY-MM-DD), or leave blank for 'TBD': ")
-    if target_date_input:
-        target_date = datetime.strptime(target_date_input, "%Y-%m-%d").strftime("%A, %B %d")  # "Wednesday, April 23"
-    else:
-        target_date = "TBD"  # Default if no date is provided
+    target_date = set_target_completion_date()
 
-    # Ask the user for a target time
-    target_time_input = input("Enter target time (HH:MM AM/PM), or leave blank for 'TBD': ")
-    if target_time_input:
-        try:
-            target_time = datetime.strptime(target_time_input, "%I:%M %p").strftime("%I:%M %p")  # "02:37 PM"
-        except ValueError:
-            print("Invalid time format. Please enter time in the format HH:MM AM/PM.")
-            return
-    else:
-        target_time = "TBD"  # Default if no time is provided
+    target_time = set_target_completion_time()
 
     # Set the default completion status to "❌" (incomplete)
     completion_status = "❌"
