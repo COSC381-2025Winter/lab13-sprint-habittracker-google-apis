@@ -205,24 +205,54 @@ def edit_habit(creds, spreadsheet_id):
     print_current_habits(data)
 
     try:
-        choice = int(input("\nEnter the number of the habit to edit: "))
-
-        if choice < 1 or choice > len(data):
+        row_number = int(input("\nEnter the number of the habit to edit: "))
+        if row_number < 1 or row_number > len(data):
             print("Invalid selection.\n")
             return
     except ValueError:
         print("Invalid input. Please enter a number.\n")
         return
-
-    new_value = input("Enter the new habit description: ").strip()
-    if not new_value:
+    
+    old_habit_row = data[row_number - 1] # get a reference to the old habit row before making changes
+    
+    # Prompt the user to enter a new habit description
+    new_habit = input("Enter the new habit description or leave empty to preserve current description: ").strip()
+    if not new_habit:
+        new_habit = old_habit_row[0] # preserve the old habit name
         print("No changes made.\n")
-        return
+
+    # Keep original creation date
+    creation_date = old_habit_row[1] if len(old_habit_row) > 1 else "Unknown"
+    
+    # Ask the user for a target completion date
+    new_target_date = set_target_completion_date()
+    
+    # Ask the user for a target completion time
+    new_target_time = set_target_completion_time()
+
+    while True:
+        try:
+            # Ask user if they want to change the completion status
+            old_status = old_habit_row[3] if len(old_habit_row) > 3 else "❌"
+            choice = input(f"Do you want to toggle completion status? (currently {old_status}) [y/n]: ").strip().lower()
+            if choice == "y":
+                new_completion_status = "✅" if old_status == "❌" else "❌"
+                break
+            elif choice == "n":
+                new_completion_status = old_status
+                break
+            else:
+                print("Invalid input. Please enter either y or n.\n")
+        except ValueError:
+            print("Invalid input. Please enter either y or n.\n")
+    
+    # The new row to be added
+    new_row = [new_habit, creation_date, f"{new_target_date} at {new_target_time}", new_completion_status, ""]
     
     # Row number in the sheet = index + 2 (1-based sheet rows, plus header)
-    row_number = choice + 1
+    row_number = row_number + 1
     cell_range = f"{sheet_name}!A{row_number}"
-    update_body = {'values': [[new_value]]}
+    update_body = {'values': [new_row]}
 
     try:
         service.spreadsheets().values().update(
@@ -231,8 +261,10 @@ def edit_habit(creds, spreadsheet_id):
             valueInputOption="RAW",
             body=update_body
         ).execute()
-        print(f"\n✅ Habit updated to '{new_value}' successfully!\n")
-        update_timestamp(creds,spreadsheet_id,choice+1)
+        print(f"\n✅ Habit '{new_habit}' updated successfully!")
+
+        # Update the updated timestamp upon successful edit
+        update_timestamp(creds,spreadsheet_id, row_number)
     except Exception as e:
         print(f"❌ Error updating habit: {e}")
 
@@ -256,7 +288,7 @@ def update_timestamp(creds, spreadsheet_id, row_index):
         body=body
     ).execute()
 
-    print(f"Timestamp updated in E{row_index}: {now}")
+    print(f"Timestamp updated in E{row_index}: {now}\n")
 
 def delete_habit(creds, spreadsheet_id):
     service = build('sheets', 'v4', credentials=creds)
