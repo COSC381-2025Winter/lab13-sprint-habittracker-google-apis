@@ -1,7 +1,10 @@
 import builtins
 import pytest
+import pytz
 import main
 from datetime import datetime
+from google_sheets import add_habit
+from unittest.mock import patch
 import google_sheets
 
 
@@ -75,21 +78,32 @@ def test_choose_or_create_sheet_existing_valid(monkeypatch):
     # Assert
     assert spreadsheet_id == DUMMY_SPREADSHEET_ID
 
-# Test: Adding a new habit
-def test_add_habit(monkeypatch, capsys):
-    # Arrange
-    inputs = iter(["1", DUMMY_HABIT, "6"])  # Menu: Add habit, enter text, then exit
-    monkeypatch.setattr(builtins, "input", lambda _: next(inputs))
-    monkeypatch.setattr(main, "authenticate_user", lambda: DummyCreds())
-    monkeypatch.setattr(main, "choose_or_create_sheet", lambda creds: DUMMY_SPREADSHEET_ID)
-    monkeypatch.setattr(main, "add_habit", lambda c, s, h: print(f"Habit '{h}' added to sheet '{s}'."))
+# Fixture to mock datetime
+@pytest.fixture
+def mock_datetime():
+    with patch('google_sheets.datetime') as mock_datetime:
+        # Mock datetime.now() to return a datetime object, not a string
+        mock_datetime.now.return_value = datetime(2025, 4, 23, 14, 37)  # Return a datetime object
+        yield mock_datetime
 
-    # Act
-    main.main()
+# Test function to test add_habit
+def test_add_habit(mock_datetime):
+    # Mock credentials and spreadsheet_id
+    creds = "mock_credentials"
+    spreadsheet_id = "mock_spreadsheet_id"
+    habit = "Test Habit"
+    
+    # Mock input to simulate user input
+    with patch('builtins.input', return_value='2025-05-01'):  # Mocking input() to return a fixed date
+        with patch('google_sheets.build') as mock_build:
+            mock_service = mock_build.return_value.spreadsheets.return_value
+            mock_service.values().append.return_value.execute.return_value = None  # Mock the execute call
 
-    # Assert
-    captured = capsys.readouterr()
-    assert f"Habit '{DUMMY_HABIT}' added to sheet '{DUMMY_SPREADSHEET_ID}'." in captured.out
+            # Run the add_habit function
+            add_habit(creds, spreadsheet_id, habit)
+
+            # Verify that the values().append().execute() was called once
+            mock_service.values().append().execute.assert_called_once()
 
 # Test: Editing an existing habit
 def test_edit_habit(monkeypatch, capsys):

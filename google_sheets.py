@@ -1,3 +1,5 @@
+from datetime import datetime
+import pytz
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from datetime import datetime
@@ -65,7 +67,7 @@ def create_sheet(creds, title: str):
     ]
 
     # Set fixed column widths (e.g., 200 pixels)
-    column_width = 200
+    column_width = 205
     for col_index in range(5):  # Columns A–E
         requests.append({
             "updateDimensionProperties": {
@@ -120,10 +122,40 @@ def add_habit(creds, spreadsheet_id, habit):
     service = build('sheets', 'v4', credentials=creds)
     sheet_name = 'Habit Tracker'
 
-    new_row = [habit]
+    # Set your time zone (you can change 'US/Eastern' to your specific time zone)
+    local_tz = pytz.timezone('US/Eastern')  # Change this to your desired time zone (e.g., 'Europe/London', 'Asia/Tokyo')
+
+    # Get the current time in your time zone
+    creation_date = datetime.now(local_tz).strftime("%A, %B %d at %I:%M %p")  # "Wednesday, April 23 at 2:37 PM"
+
+    # Ask the user for a target completion date
+    target_date_input = input("Enter target date for completion (YYYY-MM-DD), or leave blank for 'TBD': ")
+    if target_date_input:
+        target_date = datetime.strptime(target_date_input, "%Y-%m-%d").strftime("%A, %B %d")  # "Wednesday, April 23"
+    else:
+        target_date = "TBD"  # Default if no date is provided
+
+    # Ask the user for a target time
+    target_time_input = input("Enter target time (HH:MM AM/PM), or leave blank for 'TBD': ")
+    if target_time_input:
+        try:
+            target_time = datetime.strptime(target_time_input, "%I:%M %p").strftime("%I:%M %p")  # "02:37 PM"
+        except ValueError:
+            print("Invalid time format. Please enter time in the format HH:MM AM/PM.")
+            return
+    else:
+        target_time = "TBD"  # Default if no time is provided
+
+    # Set the default completion status to "❌" (incomplete)
+    completion_status = "❌"
+
+    # The new row to be added
+    new_row = [habit, creation_date, f"{target_date} at {target_time}", completion_status, ""]  # Empty Updated column
+
     range_name = f'{sheet_name}!A2'
     body = {'values': [new_row]}
 
+    # Append the new habit data to the Google Sheet
     service.spreadsheets().values().append(
         spreadsheetId=spreadsheet_id,
         range=range_name,
@@ -131,7 +163,7 @@ def add_habit(creds, spreadsheet_id, habit):
         body=body
     ).execute()
 
-    print(f"\n✅ Habit '{habit}' added successfully!\n")
+    print(f"\n✅ Habit '{habit}' added successfully with creation date, target date and time, and completion status!\n")
 
 '''is_habits_empty checks if the Habit Tracker spreadsheet is empty and returns True or False accordingly.'''
 def is_habits_empty(data):
