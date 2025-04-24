@@ -1,0 +1,72 @@
+Metadata-Version: 2.4
+Name: habittracker
+Version: 0.0.1
+Summary: A small example package
+Author-email: Example Author <author@example.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/pypa/sampleproject
+Project-URL: Issues, https://github.com/pypa/sampleproject/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+# 🧠 Habit Tracker w/ Google Sheets Integration
+
+This is a simple command-line habit tracker that uses the **Google Sheets API** to store, update, and manage daily habits in a spreadsheet. The goal is to create an accessible and persistent cloud-based habit tracking solution.
+
+## 📋 Features
+
+- ➕ Add new habits with a creation date and target completion time
+- 📝 Edit existing habits and update timestamps
+- ❌ Delete habits
+- ✅ Mark habits as completed
+- 📄 Show current list of habits
+- 🔐 Secure authentication using OAuth 2.0
+
+## 🔧 Technologies Used
+
+- Python 3.12+
+- Google Sheets API (via `google-api-python-client`)
+- `pytz` for timezone handling
+- `pytest` for testing
+
+## 🚀 Setup Instructions
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-username/habit-tracker-google-sheets.git
+cd habit-tracker-google-sheets
+```
+
+### 2. Set up a virtual environment (optional)
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+### 3. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Run the application
+```bash
+python3 python3 src/package_lab13/main.py
+google sheet url: https://docs.google.com/spreadsheets/d/1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4/edit?gid=0#gid=0
+
+```
+
+
+
+
+
+
+
+
+
+
+
