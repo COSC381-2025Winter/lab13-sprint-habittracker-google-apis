@@ -40,7 +40,9 @@ pip install -r requirements.txt
 
 ### 4. Run the application
 ```bash
-python3 python3 src/package_lab13/main.py
+export PYTHONPATH=./src
+python3 src/package_lab13/main.py
+
 google sheet url: https://docs.google.com/spreadsheets/d/1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4/edit?gid=0#gid=0
 
 ```
@@ -81,7 +83,9 @@ pip install -i https://test.pypi.org/simple/ lab13==0.0.3
 
 
 to run:
+export PYTHONPATH=./src
 python3 src/package_lab13/main.py
+
 
 google sheet url: https://docs.google.com/spreadsheets/d/1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4/edit?gid=0#gid=0
 
