@@ -46,6 +46,50 @@ google sheet url: https://docs.google.com/spreadsheets/d/1qIaMrjCJX4aTkngXQ2IwEC
 ```
 
 
+### 5. Uploading Deployment
+```bash
+Here's the guide for more detail on Deployment:
+https://packaging.python.org/en/latest/tutorials/packaging-projects/
+
+Uploading python3 -m pip install --upgrade twine
+
+python3 -m build
+
+python3 -m twine upload --repository testpypi dist/*  
+
+use your token
+
+python3 python3 src/package_lab13/main.py
+google sheet url: https://docs.google.com/spreadsheets/d/1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4/edit?gid=0#gid=0
+
+
+TEST run pytest
+
+```
+### 6. Installing Deployment & Running
+```bash
+to install  package from testpypi
+Project's linke
+https://test.pypi.org/project/lab13/0.0.3/
+
+python3 -m pip install --index-url https://test.pypi.org/simple/ \
+--no-deps lab13 --upgrade
+
+or
+
+pip install -i https://test.pypi.org/simple/ lab13==0.0.3
+
+
+to run:
+python3 src/package_lab13/main.py
+
+google sheet url: https://docs.google.com/spreadsheets/d/1qIaMrjCJX4aTkngXQ2IwECH3FMuhXRLMy9-uEOWffa4/edit?gid=0#gid=0
+
+
+TEST run: pytest
+
+```
+
 
 
 
